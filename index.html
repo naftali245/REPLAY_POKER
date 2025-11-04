@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>REPLAY VIDEO POKER</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Bebas+Neue&family=Goldman&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --primary-blue:#0A1C3C;--secondary-gold:#FFD700;--accent-red:#B22222;
+      --text-light:#FFFFFF;--text-dark:#000000;
+      --win-color-royal:#FF4500;--win-color-straight-flush:#DAA520;--win-color-4-of-a-kind:#FFD700;
+      --win-color-full-house:#9400D3;--win-color-flush:#4682B4;--win-color-straight:#00FF7F;
+      --win-color-3-of-a-kind:#8B0000;--win-color-2-pair:#A9A9A9;--win-color-jacks-or-better:#FFFFFF;
+      --win-color-default:#E63946;
+    }
+    body{font-family:'Bebas Neue','Orbitron',Arial,sans-serif;background:linear-gradient(135deg,var(--primary-blue) 0%,#000 100%);color:var(--text-light);text-align:center;margin:0;height:100vh;display:flex;justify-content:center;align-items:center;overflow:hidden;letter-spacing:.05em}
+    #game-container{width:98vw;height:98vh;max-width:1500px;max-height:950px;margin:auto;background:radial-gradient(circle at center,#1a2a51 0%,#0a1c3c 100%);border:8px solid var(--secondary-gold);box-shadow:0 0 30px rgba(255,215,0,.8),inset 0 0 20px rgba(0,0,0,.7);box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;align-items:center;position:relative;border-radius:15px;padding:10px}
+    h1,h2,h3{font-family:'Orbitron',sans-serif;color:var(--secondary-gold);text-shadow:2px 2px 4px rgba(0,0,0,.7);margin:5px 0;text-transform:uppercase}
+    h2{font-size:2.2em} h3{font-size:1.6em}
+    #floating-win-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(45deg,#00e676,#00a15b);color:var(--text-dark);padding:20px 40px;border-radius:15px;border:4px solid var(--secondary-gold);font-size:48px;font-weight:bold;box-shadow:0 0 30px rgba(0,255,0,.9),inset 0 0 15px rgba(255,255,255,.5);z-index:20;display:none;animation:pulse .7s infinite alternate,glowGreen 1.5s infinite alternate;font-family:'Orbitron',sans-serif;text-transform:uppercase;line-height:1.2}
+    #floating-win-box.active{display:block;top:45%;left:50%;font-size:24px;padding:15px 30px}
+    @keyframes pulse{from{transform:translate(-50%,-50%) scale(1)}to{transform:translate(-50%,-50%) scale(1.05)}}
+    @keyframes glowGreen{from{box-shadow:0 0 30px rgba(0,255,0,.9),inset 0 0 15px rgba(255,255,255,.5)}to{box-shadow:0 0 50px rgba(0,255,0,1),inset 0 0 25px rgba(255,255,255,.7)}}
+    #header-area{display:flex;justify-content:space-around;width:98%;padding:10px 0;gap:15px;align-items:flex-start;position:relative;margin-top:20px}
+    .paytable-column{width:25%;max-width:300px;text-align:left;padding:8px;border-radius:10px;background:linear-gradient(180deg,#333 0%,#000 100%);border:3px solid var(--secondary-gold);box-shadow:0 0 15px rgba(255,215,0,.5),inset 0 0 10px rgba(255,215,0,.3);font-size:1.1em;line-height:1.6;flex-shrink:0;position:relative}
+    .paytable-column h3{font-size:1.4em;margin-bottom:5px}
+    .paytable-row{display:grid;grid-template-columns:2.5fr 1fr;padding:4px 8px;border-bottom:1px dashed rgba(255,255,255,.2);font-family:'Goldman',monospace;font-size:1.1em;color:var(--text-light)}
+    .paytable-row span:first-child{text-align:left}
+    .paytable-row span:last-child{text-align:right;font-weight:bold;color:#FFFF99;text-shadow:0 0 5px rgba(255,255,153,.7)}
+    .paytable-row.highlighted{background:#00e676;color:var(--text-dark)} .paytable-row.highlighted span:last-child{color:var(--text-dark);text-shadow:none}
+    #replay-section{width:40%;max-width:450px;padding:15px;background:linear-gradient(180deg,#6a0000 0%,#3d0000 100%);border-radius:15px;border:4px solid var(--secondary-gold);box-shadow:0 5px 20px rgba(0,0,0,.9),inset 0 0 15px rgba(255,215,0,.5);flex-grow:1;display:flex;flex-direction:column;justify-content:center;align-items:center}
+    #replay-section h2{font-size:1.8em;margin-bottom:5px}
+    #replay-display-container{height:195px;overflow:hidden;border-radius:8px;background:#000;border:3px solid var(--accent-red);box-shadow:inset 0 0 15px rgba(0,0,0,.9);width:100%}
+    #replay-display{display:flex;flex-direction:column;width:100%;height:100%;transition:none}
+    .replay-slot{width:100%;height:65px;background:#2a0000;color:var(--text-light);font-size:1.4em;font-weight:bold;display:flex;flex-direction:row;justify-content:space-around;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.1);box-sizing:border-box;font-family:'Goldman',monospace}
+    .replay-slot:last-child{border-bottom:none}
+    .replay-slot.winning-history{background:#a30000;box-shadow:inset 0 0 10px rgba(255,215,0,.5);color:#FFEB3B}
+    .replay-slot.bonus-paid-active{background:linear-gradient(45deg,#008f39,#005a26);color:var(--text-light);border:3px solid var(--secondary-gold);box-shadow:0 0 15px rgba(0,255,0,.8)}
+    .replay-slot-title{color:var(--text-light);text-shadow:1px 1px 3px rgba(0,0,0,.8);line-height:1.2;font-size:1.2em;text-transform:uppercase;width:60%;text-align:center;padding:0 5px}
+    .replay-multiplier-display{font-size:1.6em;color:#FFEB3B;font-weight:900;text-shadow:0 0 8px rgba(255,165,0,.8);margin-right:10px;white-space:nowrap}
+    #card-area-wrapper{width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:20px 0;position:relative}
+    #card-container-flex{display:flex;justify-content:center;align-items:center;width:98%;max-width:900px;position:relative}
+    #card-area{display:flex;justify-content:center;gap:1.5%;width:100%;min-height:250px;background:radial-gradient(circle at center,#004400 0%,#002200 100%);padding:20px 0;border-top:2px solid var(--secondary-gold);border-bottom:2px solid var(--secondary-gold);box-shadow:inset 0 0 20px rgba(0,0,0,.8);position:relative;z-index:5;max-width:700px}
+    #logo-left-replay{display:flex;flex-direction:column;align-items:center;position:absolute;left:-120px;top:50%;transform:translateY(-50%);z-index:10}
+    #logo-left-replay .replay-icon-box{width:70px;height:60px;background:var(--accent-red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;color:var(--text-light);font-size:3em;border:3px solid var(--secondary-gold);line-height:1;margin-bottom:5px;position:relative}
+    #logo-left-replay .replay-icon-box:before{content:"REPLAY";position:absolute;top:-1.2em;font-size:.7em;font-weight:bold;color:var(--secondary-gold);text-shadow:1px 1px 2px #000}
+    #logo-left-replay .replay-text{font-family:'Bebas Neue',sans-serif;font-size:1.5em;color:var(--text-light);line-height:1.1;text-shadow:1px 1px 3px rgba(0,0,0,.8);letter-spacing:.1em}
+    #logo-right-brightly{position:absolute;right:-100px;bottom:5px;font-family:'Goldman',monospace;font-size:1em;color:var(--text-light);text-shadow:1px 1px 2px #000;z-index:10;white-space:nowrap}
+    .card-slot{width:14vw;max-width:140px;height:22vh;max-height:210px;position:relative;background:#f5f5f5;border-radius:8px;box-shadow:5px 5px 15px rgba(0,0,0,.8);cursor:pointer;transition:transform .1s,box-shadow .2s}
+    .card-slot img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+    .hold-text{font-size:1.2em;position:absolute;left:50%;transform:translateX(-50%);bottom:-28px}
+    #win-on-card-2{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--win-color-default);color:#fff;padding:5px 10px;font-size:1.4em;font-weight:bold;border-radius:8px;border:3px solid var(--secondary-gold);box-shadow:0 0 10px rgba(255,0,0,.8);z-index:15;display:none;white-space:nowrap;font-family:'Orbitron',sans-serif;text-transform:uppercase;line-height:1.2;text-align:center}
+    #footer-area{width:98%;background:linear-gradient(90deg,#1a237e 0%,#0d1246 100%);padding:20px;border-radius:10px;margin-top:15px;grid-template-columns:1.5fr 1fr 1fr 1fr 1.5fr;align-items:center;border:4px solid var(--secondary-gold);box-shadow:0 0 20px rgba(0,0,0,.8),inset 0 0 10px rgba(255,215,0,.3);gap:20px;display:grid}
+    #status-message{grid-column:1/span 1;text-align:left;min-height:40px;color:var(--secondary-gold);font-size:1.8em;font-weight:bold;padding-left:15px;display:flex;align-items:center;text-shadow:1px 1px 3px rgba(0,0,0,.8);letter-spacing:.08em}
+    .win-display-box{padding:10px 18px;border-radius:8px;font-size:1.2em;font-weight:bold;border:2px solid var(--text-light);text-align:center;font-family:'Orbitron',sans-serif;text-transform:uppercase;box-shadow:inset 0 0 10px rgba(0,0,0,.5);background:#222}
+    .win-display-box div:first-child{font-size:.9em;color:#EEE}
+    .win-display-box div:last-child{font-size:2em;color:#FFF;text-shadow:0 0 10px rgba(255,255,255,.7)}
+    #win-base-box{grid-column:2/span 1;background:linear-gradient(135deg,#00a15b,#00e676);color:var(--text-dark);border-color:var(--secondary-gold);box-shadow:0 0 15px rgba(0,255,0,.7)}
+    #win-base-box div:first-child{color:var(--text-dark)} #win-base-box div:last-child{color:var(--text-dark);text-shadow:0 0 8px rgba(0,0,0,.5)}
+    #win-status{grid-column:3/span 1;background:linear-gradient(135deg,#cc8400,#ffc107);color:var(--text-dark);border-color:var(--text-light);box-shadow:0 0 15px rgba(255,165,0,.7)}
+    #total-win-box{grid-column:4/span 1;background:linear-gradient(135deg,#b30000,#ff0000);color:var(--text-light);border-color:var(--secondary-gold);box-shadow:0 0 15px rgba(255,0,0,.7)}
+    #controls{grid-column:5/span 1;display:flex;justify-content:flex-end;align-items:center;gap:20px}
+    .control-box{background:linear-gradient(180deg,#444 0%,#222 100%);padding:15px 25px;border-radius:8px;font-size:1.6em;font-weight:bold;border:3px solid var(--secondary-gold);box-shadow:0 0 10px rgba(255,215,0,.4),inset 0 0 8px rgba(0,0,0,.7);color:var(--secondary-gold);text-shadow:1px 1px 2px rgba(0,0,0,.8);font-family:'Orbitron',sans-serif;letter-spacing:.05em}
+    .control-box span{color:var(--text-light);text-shadow:0 0 8px rgba(255,255,255,.7)}
+    #deal-draw-btn{padding:20px 40px;font-size:2.5em;cursor:pointer;border:none;border-radius:12px;font-weight:bold;background:linear-gradient(180deg,#00e676 0%,#00a15b 100%);color:#fff;transition:background .2s,transform .1s,box-shadow .2s;box-shadow:0 8px 15px rgba(0,255,0,.7);font-family:'Orbitron',sans-serif;letter-spacing:.1em;text-transform:uppercase}
+    #deal-draw-btn:hover{background:linear-gradient(180deg,#00a15b 0%,#00e676 100%);transform:translateY(-2px);box-shadow:0 10px 20px rgba(0,255,0,.9)}
+    #deal-draw-btn:active{transform:translateY(1px);box-shadow:0 4px 8px rgba(0,255,0,.5)}
+    #deal-draw-btn[data-gamestate="HOLD"]{background:linear-gradient(180deg,#ffc107 0%,#cc8400 100%);box-shadow:0 8px 15px rgba(255,165,0,.7)}
+    #deal-draw-btn[data-gamestate="HOLD"]:hover{background:linear-gradient(180deg,#cc8400 0%,#ffc107 100%);box-shadow:0 10px 20px rgba(255,165,0,.9)}
+  </style>
+</head>
+<body>
+
+  <div id="floating-win-box"></div>
+
+  <div id="game-container">
+    <div id="header-area">
+      <div class="paytable-column" id="paytable-left-win"><h3>PAYOUTS</h3></div>
+      <div id="replay-section">
+        <h2>LAST 3 HANDS - BONUS</h2>
+        <div id="replay-display-container"><div id="replay-display"></div></div>
+        <p style="margin:10px 0 0;color:var(--secondary-gold);font-size:1.1em;text-shadow:1px 1px 2px #000">Multiplier depends on current winning hand.</p>
+      </div>
+      <div class="paytable-column" id="paytable-right-multiplier"><h3>MULTIPLIERS (M)</h3></div>
+    </div>
+
+    <div id="card-area-wrapper">
+      <div id="card-container-flex">
+        <div id="logo-left-replay">
+          <div class="replay-icon-box">R</div>
+          <div class="replay-text">VIDEO POKER</div>
+        </div>
+
+        <div id="card-area">
+          <div class="card-slot" id="card-0" onclick="toggleHold(0)">
+            <img src="CARDS/card_back.png" alt="Card Back"><span class="hold-text">HELD</span>
+          </div>
+          <div class="card-slot" id="card-1" onclick="toggleHold(1)">
+            <img src="CARDS/card_back.png" alt="Card Back"><span class="hold-text">HELD</span>
+          </div>
+          <div class="card-slot" id="card-2" onclick="toggleHold(2)">
+            <div id="win-on-card-2" style="display:none;"></div>
+            <img src="CARDS/card_back.png" alt="Card Back"><span class="hold-text">HELD</span>
+          </div>
+          <div class="card-slot" id="card-3" onclick="toggleHold(3)">
+            <img src="CARDS/card_back.png" alt="Card Back"><span class="hold-text">HELD</span>
+          </div>
+          <div class="card-slot" id="card-4" onclick="toggleHold(4)">
+            <img src="CARDS/card_back.png" alt="Card Back"><span class="hold-text">HELD</span>
+          </div>
+        </div>
+
+        <div id="logo-right-brightly">Brightly Games</div>
+      </div>
+      <div id="initial-win-display"></div>
+    </div>
+
+    <div id="footer-area">
+      <div id="status-message">PRESS DEAL TO START!</div>
+
+      <div class="win-display-box" id="win-base-box">
+        <div>BASE WIN</div><div id="base-win-display">0.00</div>
+      </div>
+
+      <div class="win-display-box" id="win-status">
+        <div>BONUS</div><div id="bonus-display">0.00</div>
+      </div>
+
+      <div class="win-display-box" id="total-win-box">
+        <div>TOTAL WIN</div><div id="total-win-display">0.00</div>
+      </div>
+
+      <div id="controls">
+        <div class="control-box">BET: <span id="current-bet-display">10</span></div>
+        <div class="control-box">CREDITS: <span id="credits">500.00</span></div>
+        <button id="deal-draw-btn" data-gamestate="DEAL">DEAL</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="floating-win-box"></div>
+
+  <script>
+    // ====== Constants & State ======
+    const SUITS = ['clubs','diamonds','hearts','spades'];
+    const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+    let deck=[], hand=[], held=[false,false,false,false,false];
+    let gameState='DEAL';
+    let credits=500.00;
+    const currentBet=10;
+    let lastWin=0,lastBonus=0,totalWin=0;
+    let lastHandRecord=null, winningHandName=null;
+
+    // ---- Robust audio loader (handles spaces & alt names) ----
+    function createAudioWithFallback(paths){
+      const audio=new Audio();
+      let i=0;
+      const tryNext=()=>{
+        if(i>=paths.length){ console.warn('Audio not found for',paths); return; }
+        audio.src=paths[i++];
+        audio.onerror=()=>tryNext();
+      };
+      tryNext();
+      return audio;
+    }
+
+    const SOUNDS = {
+      DEAL_DRAW: createAudioWithFallback([
+        'SOUNDS/DEAL.mp3',
+        'SOUNDS/deal.mp3'
+      ]),
+      HOLD_CLICK: createAudioWithFallback([
+        'SOUNDS/Button%20Click.mp3',
+        'SOUNDS/Button_Click.mp3',
+        'SOUNDS/button_click.mp3'
+      ]),
+      WIN: createAudioWithFallback([
+        'SOUNDS/game-start-317318.mp3',
+        'SOUNDS/win.mp3'
+      ])
+    };
+
+    const EMPTY_HAND = { factor:0, name:'---', baseWin:0, multiplier:1, tripleActive:false, paidBonus:false, bonusPaidAmount:0 };
+    let replayHistory = [{...EMPTY_HAND},{...EMPTY_HAND},{...EMPTY_HAND}];
+
+    const PAYOUT_DATA = {
+      'Royal Flush':{win:4000,multiplier:2,factor:4000/currentBet},
+      'Straight Flush':{win:250,multiplier:2,factor:250/currentBet},
+      'Four of a Kind':{win:125,multiplier:2,factor:125/currentBet},
+      'Full House':{win:40,multiplier:12,factor:40/currentBet},
+      'Flush':{win:30,multiplier:11,factor:30/currentBet},
+      'Straight':{win:20,multiplier:7,factor:20/currentBet},
+      'Three of a Kind':{win:15,multiplier:4,factor:15/currentBet},
+      'Two Pair':{win:5,multiplier:2,factor:5/currentBet},
+      'Jacks or Better':{win:5,multiplier:1,factor:5/currentBet},
+      'None':{win:0,multiplier:1,factor:0}
+    };
+
+    const PAYOUT_TEXTS = [
+      {name:'Royal Flush',pay:PAYOUT_DATA['Royal Flush'].win,mult:PAYOUT_DATA['Royal Flush'].multiplier},
+      {name:'Straight Flush',pay:PAYOUT_DATA['Straight Flush'].win,mult:PAYOUT_DATA['Straight Flush'].multiplier},
+      {name:'4 of a Kind',pay:PAYOUT_DATA['Four of a Kind'].win,mult:PAYOUT_DATA['Four of a Kind'].multiplier},
+      {name:'Full House',pay:PAYOUT_DATA['Full House'].win,mult:PAYOUT_DATA['Full House'].multiplier},
+      {name:'Flush',pay:PAYOUT_DATA['Flush'].win,mult:PAYOUT_DATA['Flush'].multiplier},
+      {name:'Straight',pay:PAYOUT_DATA['Straight'].win,mult:PAYOUT_DATA['Straight'].multiplier},
+      {name:'3 of a Kind',pay:PAYOUT_DATA['Three of a Kind'].win,mult:PAYOUT_DATA['Three of a Kind'].multiplier},
+      {name:'2 Pair',pay:PAYOUT_DATA['Two Pair'].win,mult:PAYOUT_DATA['Two Pair'].multiplier},
+      {name:'Jacks or Better',pay:PAYOUT_DATA['Jacks or Better'].win,mult:PAYOUT_DATA['Jacks or Better'].multiplier}
+    ];
+
+    // ====== Helpers ======
+    function generatePaytable(){
+      const winTable=document.getElementById('paytable-left-win');
+      const multTable=document.getElementById('paytable-right-multiplier');
+      winTable.innerHTML=`<h3>PAYOUTS</h3>`;
+      multTable.innerHTML=`<h3>MULTIPLIERS (M)</h3>`;
+      PAYOUT_TEXTS.forEach(item=>{
+        winTable.innerHTML += `<div class="paytable-row" id="pay-row-win-${item.name.replace(/\s/g,'-')}"><span>${item.name}</span><span>${item.pay}</span></div>`;
+        const multText=(item.mult===1)?'1x':`${item.mult}x`;
+        multTable.innerHTML += `<div class="paytable-row" id="pay-row-mult-${item.name.replace(/\s/g,'-')}"><span>${item.name}</span><span>${multText}</span></div>`;
+      });
+    }
+
+    function updateUI(){
+      document.getElementById('credits').textContent=credits.toFixed(2);
+      document.getElementById('current-bet-display').textContent=currentBet;
+      document.getElementById('bonus-display').textContent=lastBonus.toFixed(2);
+      document.getElementById('total-win-display').textContent=totalWin.toFixed(2);
+      document.getElementById('base-win-display').textContent=lastWin.toFixed(2);
+      const btn=document.getElementById('deal-draw-btn');
+      btn.textContent = gameState==='DEAL' ? 'DEAL' : 'DRAW';
+      btn.dataset.gamestate=gameState;
+
+      if(lastBonus===0){ document.getElementById('floating-win-box').classList.remove('active'); }
+
+      document.querySelectorAll('.paytable-row.highlighted').forEach(el=>el.classList.remove('highlighted'));
+      const cardWinBox=document.getElementById('win-on-card-2');
+      const initialWinDisplay=document.getElementById('initial-win-display');
+
+      if(gameState==='DEAL'){
+        if(lastWin>0 && winningHandName){
+          const displayHandName=winningHandName.toUpperCase().replace(/ OF A KIND/g,'X');
+          cardWinBox.textContent = `${displayHandName} : ${lastWin.toFixed(2)}`;
+          cardWinBox.style.display='block';
+        }else{
+          cardWinBox.style.display='none';
+        }
+        initialWinDisplay.style.display='none'; initialWinDisplay.dataset.handname='';
+        if(lastHandRecord && (lastWin>0 || lastBonus>0)){
+          setMessage(`PRESS DEAL TO START NEXT ROUND. TOTAL WIN: ${totalWin.toFixed(2)}`,true);
+          const highlightKey=lastHandRecord.name.replace(/\sHigh/g,'').replace(/\s/g,'-');
+          const winElement=document.getElementById(`pay-row-win-${highlightKey}`);
+          const multElement=document.getElementById(`pay-row-mult-${highlightKey}`);
+          if(winElement) winElement.classList.add('highlighted');
+          if(multElement) multElement.classList.add('highlighted');
+        }else{
+          setMessage("PRESS DEAL TO START!",false);
+        }
+      }else{
+        cardWinBox.style.display='none';
+        if(initialWinDisplay.dataset.handname && initialWinDisplay.dataset.handname!=='None'){
+          const displayHandName = initialWinDisplay.dataset.handname.replace(/ OF A KIND/g,'X').toUpperCase();
+          initialWinDisplay.textContent=displayHandName;
+          initialWinDisplay.style.display='block';
+        }else{
+          initialWinDisplay.style.display='none';
+        }
+      }
+    }
+
+    function updateReplayDisplay(){
+      const displayEl=document.getElementById('replay-display');
+      let newHTML='';
+      replayHistory.forEach((hand,index)=>{
+        const isWin=hand.factor>0;
+        let displayClass='', bonusAmountDisplay='';
+        if(hand.paidBonus && hand.bonusPaidAmount>0){
+          displayClass='bonus-paid-active';
+          bonusAmountDisplay=`<div class="replay-multiplier-display">+${hand.bonusPaidAmount.toFixed(2)}</div>`;
+        }else if(isWin){
+          displayClass='winning-history';
+        }else{
+          displayClass='non-win';
+        }
+        let handNameDisplay=hand.name;
+        if(handNameDisplay.includes('High') || handNameDisplay==='None'){ handNameDisplay='HIGH CARD'; }
+        const titleWidthStyle = bonusAmountDisplay ? 'style="width:60%;"':'style="width:100%;"';
+        newHTML += `<div class="replay-slot ${displayClass}" id="replay-slot-${index}">
+          <div class="replay-slot-title" ${titleWidthStyle}><span>${handNameDisplay.replace(/ OF A KIND/g,'X')}</span></div>
+          ${bonusAmountDisplay}
+        </div>`;
+      });
+      displayEl.style.transition='none';
+      displayEl.innerHTML=newHTML;
+      displayEl.style.transform='translateY(0)';
+    }
+
+    // ====== IMAGE LOADING (adjusted to your CARDS folder) ======
+    function setImgWithFallback(img, paths){
+      let i=0;
+      const tryNext=()=>{
+        if(i>=paths.length){ console.error('Missing image:', paths); return; }
+        img.onerror=()=>{ i++; tryNext(); };
+        img.src = paths[i];
+      };
+      tryNext();
+    }
+
+    function buildCardPaths(rank,suit){
+      // Your folder uses lowercase letters for ranks a/j/q/k and lowercase suits
+      const r = String(rank).toLowerCase();   // '2'..'10','a','j','q','k'
+      const s = String(suit).toLowerCase();   // clubs/diamonds/hearts/spades
+      return [
+        `CARDS/${r}_of_${s}.png`,
+        `CARDS/${r}_of_${s}.PNG`,
+        // small safety against accidental uppercase rank files
+        `CARDS/${String(rank).toUpperCase()}_of_${s}.png`
+      ];
+    }
+
+    function updateCardDisplay(){
+      const cardSlots=document.querySelectorAll('.card-slot');
+      cardSlots.forEach((slot,index)=>{
+        slot.style.border='2px solid transparent';
+        const img=slot.querySelector('img');
+
+        if(hand[index] && hand[index].rank!=='back'){
+          const paths = buildCardPaths(hand[index].rank, hand[index].suit);
+          setImgWithFallback(img, paths);
+        }else{
+          setImgWithFallback(img, ['CARDS/card_back.png','CARDS/card_back.PNG']);
+        }
+
+        const holdText=slot.querySelector('.hold-text');
+        const isHoldState=gameState==='HOLD';
+        if(held[index]){ slot.classList.add('held'); holdText.textContent='HELD'; }
+        else { slot.classList.remove('held'); holdText.textContent='HOLD'; }
+        holdText.style.opacity = isHoldState ? (held[index] ? 1 : 0) : 0;
+      });
+    }
+
+    function setMessage(text,isWin=false){
+      const msgBox=document.getElementById('status-message');
+      msgBox.textContent=text;
+      msgBox.style.color=isWin?'#FFD700':'#FFFFFF';
+    }
+
+    // ====== Game logic ======
+    function createDeck(){
+      deck=[];
+      for(const suit of SUITS){ for(const rank of RANKS){ deck.push({suit,rank,value:RANKS.indexOf(rank)+2}); } }
+    }
+    function shuffleDeck(){ for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; } }
+    function dealCards(n){ return deck.splice(0,n); }
+
+    function toggleHold(i){
+      if(gameState==='HOLD'){ held[i]=!held[i]; updateCardDisplay(); SOUNDS.HOLD_CLICK.currentTime=0; SOUNDS.HOLD_CLICK.play(); }
+    }
+
+    function checkHand(cards){
+      const ranks=cards.map(c=>c.value).sort((a,b)=>a-b);
+      const suits=cards.map(c=>c.suit);
+      const rankCounts=ranks.reduce((a,r)=>{a[r]=(a[r]||0)+1;return a;}, {});
+      const isFlush=suits.every(s=>s===suits[0]);
+
+      let isStraight=true;
+      for(let i=0;i<4;i++){ if(ranks[i]+1!==ranks[i+1]){ isStraight=false; break; } }
+      if(!isStraight && ranks[0]===2 && ranks[1]===3 && ranks[2]===4 && ranks[3]===5 && ranks[4]===14){ isStraight=true; }
+
+      const counts=Object.values(rankCounts);
+      const pairs=counts.filter(c=>c===2).length;
+      const triples=counts.filter(c=>c===3).length;
+      const quads=counts.filter(c=>c===4).length;
+
+      let handName='None';
+      if(isStraight && isFlush){ handName=(ranks[0]===10 && ranks[4]===14)?'Royal Flush':'Straight Flush'; }
+      else if(quads===1){ handName='Four of a Kind'; }
+      else if(triples===1 && pairs===1){ handName='Full House'; }
+      else if(isFlush){ handName='Flush'; }
+      else if(isStraight){ handName='Straight'; }
+      else if(triples===1){ handName='Three of a Kind'; }
+      else if(pairs===2){ handName='Two Pair'; }
+      else if(pairs===1){
+        const highPairs=Object.keys(rankCounts).filter(r=>rankCounts[r]===2 && parseInt(r)>=11).length;
+        if(highPairs===1){ handName='Jacks or Better'; }
+      }
+
+      let payoutKey=handName;
+      if(handName.includes('High') || handName==='None'){
+        payoutKey='None';
+        if(handName==='None'){
+          const highestRank=Math.max(...ranks);
+          handName=RANKS[highestRank-2]+' High';
+        }
+      }
+      const payoutData=PAYOUT_DATA[payoutKey] || PAYOUT_DATA['None'];
+      return {payoutFactor:payoutData.factor, handName, multiplier:payoutData.multiplier};
+    }
+
+    function processPayout(payoutFactor, handName, currentMultiplier){
+      document.querySelectorAll('.paytable-row.highlighted').forEach(el=>el.classList.remove('highlighted'));
+
+      lastWin=0; lastBonus=0;
+      const baseWinCurrentHand=payoutFactor*currentBet;
+      let replayBonusAccumulated=0, totalPayoutCalculated=0;
+      const isCurrentHandWinning = payoutFactor>0;
+      const winningHistoryDetails=[];
+
+      if(isCurrentHandWinning){
+        const bonusFactor=currentMultiplier;
+        for(let i=0;i<replayHistory.length;i++){
+          const handRecord=replayHistory[i];
+          if(handRecord.factor>0 && currentMultiplier>=1){
+            const bonus=handRecord.baseWin*bonusFactor;
+            replayBonusAccumulated+=bonus;
+            handRecord.paidBonus=true;
+            handRecord.bonusPaidAmount=bonus;
+            const handDisplayName=handRecord.name.replace(/\sHigh/g,'').replace(/ of a Kind/g,'X').replace(/Jacks or Better/g,'J/B');
+            winningHistoryDetails.push(`${handDisplayName} x${bonusFactor} = ${bonus.toFixed(2)}`);
+          }
+        }
+      }else{
+        replayHistory.forEach(h=>{ h.paidBonus=false; h.bonusPaidAmount=0; });
+      }
+
+      lastBonus=replayBonusAccumulated;
+      totalPayoutCalculated+=lastBonus;
+
+      if(isCurrentHandWinning){
+        lastWin=baseWinCurrentHand;
+        totalPayoutCalculated+=lastWin;
+        winningHandName=handName;
+
+        const floatingBox=document.getElementById('floating-win-box');
+        if(lastBonus>0){
+          floatingBox.innerHTML=`BONUS PAID! (M: ${currentMultiplier}x)<br>${winningHistoryDetails.join('<br>')}`;
+          floatingBox.classList.add('active');
+        }else{
+          floatingBox.classList.remove('active');
+        }
+        SOUNDS.WIN.pause(); SOUNDS.WIN.currentTime=0; SOUNDS.WIN.play();
+      }else{
+        winningHandName=null;
+        const floatingBox=document.getElementById('floating-win-box');
+        if(lastBonus>0){
+          floatingBox.innerHTML=`BONUS PAID! (M: ${currentMultiplier}x)<br>${winningHistoryDetails.join('<br>')}`;
+          floatingBox.classList.add('active');
+        }else{
+          floatingBox.classList.remove('active');
+        }
+      }
+
+      totalWin=totalPayoutCalculated;
+      credits+=totalPayoutCalculated;
+
+      lastHandRecord={
+        factor:payoutFactor, name:handName, baseWin:baseWinCurrentHand, multiplier:currentMultiplier,
+        tripleActive: (payoutFactor!==0), paidBonus:false, bonusPaidAmount:0
+      };
+
+      if(payoutFactor===0){ lastHandRecord.tripleActive=false; lastHandRecord.multiplier=1; }
+
+      gameState='DEAL';
+      updateUI();
+    }
+
+    function dealOrDraw(){
+      SOUNDS.DEAL_DRAW.currentTime=0; SOUNDS.DEAL_DRAW.play();
+      const initialWinDisplay=document.getElementById('initial-win-display');
+      initialWinDisplay.style.display='none'; initialWinDisplay.dataset.handname='';
+      winningHandName=null;
+
+      if(gameState==='DEAL'){
+        if(lastHandRecord){
+          replayHistory.forEach(h=>{ if(h.paidBonus){ h.paidBonus=false; h.bonusPaidAmount=0; } });
+          replayHistory.shift(); replayHistory.push(lastHandRecord); lastHandRecord=null;
+        }
+        updateReplayDisplay();
+        document.getElementById('floating-win-box').classList.remove('active');
+        lastWin=0; lastBonus=0; totalWin=0;
+        document.querySelectorAll('.paytable-row.highlighted').forEach(el=>el.classList.remove('highlighted'));
+        if(credits<currentBet){ setMessage(`INSUFFICIENT CREDITS! Bet is fixed at ${currentBet}.`,false); return; }
+
+        credits-=currentBet;
+        createDeck(); shuffleDeck();
+        hand=dealCards(5);
+        held=[false,false,false,false,false];
+        gameState='HOLD';
+
+        const {payoutFactor, handName:initialHandName}=checkHand(hand);
+        if(payoutFactor>0){
+          setMessage(`INITIAL DEAL: ${initialHandName.toUpperCase()}! Select cards to HELD and press DRAW.`,true);
+          initialWinDisplay.dataset.handname=initialHandName;
+        }else{
+          setMessage("SELECT CARDS TO HELD AND PRESS DRAW.",false);
+        }
+        updateCardDisplay(); updateUI();
+
+      }else{
+        for(let i=0;i<5;i++){ if(!held[i]){ hand[i]=dealCards(1)[0]; } }
+        const {payoutFactor, handName, multiplier}=checkHand(hand);
+        processPayout(payoutFactor,handName,multiplier);
+        updateCardDisplay(); updateUI();
+      }
+    }
+
+    // ====== Init ======
+    function initializeListeners(){
+      const btn=document.getElementById('deal-draw-btn');
+      if(btn){ btn.addEventListener('click', dealOrDraw); }
+      hand=[null,null,null,null,null];
+      generatePaytable(); updateUI(); updateCardDisplay(); updateReplayDisplay();
+    }
+    window.onload=initializeListeners;
+  </script>
+</body>
+</html>
